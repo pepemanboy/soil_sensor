@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Soil sensors (Tuya)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f1419;
+      color: #e6edf3;
+    }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+      overflow-x: hidden;
+    }
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .page-header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      min-width: 0;
+    }
+    .config-link {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #8b949e;
+      text-decoration: none;
+    }
+    .config-link:hover {
+      background: #30363d;
+      color: #e6edf3;
+    }
+    .config-link svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+    .meta { color: #8b949e; font-size: 0.875rem; margin-top: 0.75rem; margin-bottom: 0; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    button {
+      background: #238636;
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 0.55rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-height: 2.5rem;
+    }
+    button:hover { background: #2ea043; }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    .toolbar label {
+      font-size: 0.875rem;
+      color: #8b949e;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 2.5rem;
+      padding: 0.15rem 0;
+    }
+    .toolbar input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      accent-color: #238636;
+    }
+    .toolbar select {
+      background: #161b22;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.4rem 0.5rem;
+      font-size: 0.875rem;
+      max-width: 100%;
+    }
+    .toolbar label.plot-controls { display: none; }
+    body.show-plots .toolbar label.plot-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .err {
+      background: #3d1618;
+      color: #f85149;
+      padding: 0.75rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .sensor-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-top: 1rem;
+    }
+    .sensor-row {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+      padding: 0.75rem 1rem;
+    }
+    .sensor-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 6.5rem 7rem 7.25rem;
+      column-gap: 1.5rem;
+      row-gap: 0.5rem;
+      align-items: center;
+      width: 100%;
+    }
+    .sensor-name {
+      grid-column: 1;
+      min-width: 0;
+    }
+    .metric.humidity { grid-column: 2; }
+    .metric.temp { grid-column: 3; }
+    .battery-wrap { grid-column: 4; }
+    .sensor-name h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem 0.5rem;
+      line-height: 1.3;
+    }
+    .plant-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.75rem;
+      height: 1.75rem;
+      padding: 0 0.4rem;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #e6edf3;
+      flex-shrink: 0;
+    }
+    .plant-title {
+      min-width: 0;
+    }
+    .pill {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .pill.on { background: #23863633; color: #3fb950; }
+    .pill.off { background: #3d161833; color: #f85149; }
+    .metric {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      justify-self: start;
+      gap: 0.45rem;
+      width: 100%;
+      min-width: 0;
+    }
+    .metric-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      flex: 0 0 1.5rem;
+      display: block;
+      color: #8b949e;
+    }
+    .metric.humidity .metric-icon { color: #58a6ff; }
+    .metric.temp .metric-icon { color: #f0883e; }
+    .metric-value {
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      text-align: left;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+    .battery-wrap {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      justify-self: start;
+      gap: 0.45rem;
+      width: 100%;
+      min-width: 0;
+    }
+    .battery {
+      position: relative;
+      width: 1.8rem;
+      height: 0.9rem;
+      flex: 0 0 1.8rem;
+      border: 2px solid #8b949e;
+      border-radius: 3px;
+      padding: 2px;
+    }
+    .battery::after {
+      content: '';
+      position: absolute;
+      right: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 45%;
+      background: #8b949e;
+      border-radius: 0 2px 2px 0;
+    }
+    .battery-fill {
+      height: 100%;
+      border-radius: 1px;
+      min-width: 2px;
+    }
+    .chart-section {
+      display: none;
+      border-top: 1px solid #30363d;
+      padding: 0.75rem 0 0;
+      margin-top: 0.5rem;
+    }
+    body.show-plots .chart-section { display: block; }
+    .chart-wrap {
+      position: relative;
+      height: 140px;
+      width: 100%;
+      max-width: 100%;
+    }
+    .chart-wrap canvas { max-width: 100% !important; }
+    .chart-empty {
+      font-size: 0.8rem;
+      color: #8b949e;
+      padding: 1.25rem 0;
+      text-align: center;
+    }
+
+    @media (min-width: 640px) {
+      body { padding: 1.25rem; }
+      .sensor-row { padding: 0.85rem 1.1rem; }
+      .sensor-main {
+        grid-template-columns: minmax(0, 1fr) 7rem 7.5rem 7.75rem;
+        column-gap: 2rem;
+      }
+      .metric-value { font-size: 1.1rem; line-height: 1; }
+      .metric-icon { width: 1.5rem; height: 1.5rem; flex: 0 0 1.5rem; }
+      .battery { width: 1.9rem; height: 0.9rem; flex: 0 0 1.9rem; }
+    }
+
+    @media (max-width: 639px) {
+      .sensor-main {
+        grid-template-columns: 1fr 1fr 1fr;
+        column-gap: 0.75rem;
+      }
+      .sensor-name {
+        grid-column: 1 / -1;
+      }
+      .metric.humidity { grid-column: 1; }
+      .metric.temp { grid-column: 2; }
+      .battery-wrap { grid-column: 3; }
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+      .toolbar > button { grid-column: 1 / -1; }
+      body.show-plots .toolbar label.plot-controls { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <h1>Soil sensors</h1>
+    <a href="./config.html" class="config-link" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+      </svg>
+    </a>
+  </header>
+  <div class="toolbar">
+    <button type="button" id="refresh">Refresh</button>
+    <label>
+      Sort by
+      <select id="sort-by">
+        <option value="moisture_asc" selected>Moisture (dry first)</option>
+        <option value="moisture_desc">Moisture (wet first)</option>
+        <option value="temp_asc">Temperature (low first)</option>
+        <option value="temp_desc">Temperature (high first)</option>
+        <option value="number_asc">Number (low first)</option>
+        <option value="number_desc">Number (high first)</option>
+        <option value="battery_asc">Battery (low first)</option>
+        <option value="offline_first">Offline first</option>
+      </select>
+    </label>
+    <label>
+      <input type="checkbox" id="show-plots" /> Show plots
+    </label>
+    <label class="plot-controls">
+      Chart
+      <select id="chart-metric">
+        <option value="humidity">Moisture %</option>
+        <option value="temp_current">Temperature °C</option>
+        <option value="battery_percentage">Battery %</option>
+      </select>
+    </label>
+    <label class="plot-controls">
+      Chart range
+      <select id="chart-hours">
+        <option value="24">24 hours</option>
+        <option value="168" selected>7 days</option>
+        <option value="720">30 days</option>
+      </select>
+    </label>
+  </div>
+  <div id="error" class="err" hidden></div>
+  <div id="sensor-list" class="sensor-list"></div>
+  <p id="stamp" class="meta"></p>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./app.js" type="module"></script>
+</body>
+</html>

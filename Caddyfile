@@ -1,0 +1,6 @@
+# Replace with your hostname before deploy (DNS A/AAAA record → server).
+# Caddy will obtain a Let's Encrypt certificate automatically.
+
+plants.example.com {
+	reverse_proxy app:3000
+}

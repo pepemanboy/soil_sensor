@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login — Soil sensors</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f1419;
+      color: #e6edf3;
+    }
+    body {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.35rem; }
+    p { color: #8b949e; font-size: 0.875rem; margin: 0 0 1.25rem; }
+    label { display: block; font-size: 0.875rem; color: #8b949e; margin-bottom: 0.35rem; }
+    input[type="password"] {
+      width: 100%;
+      background: #161b22;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.55rem 0.65rem;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      width: 100%;
+      background: #238636;
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 0.55rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-height: 2.5rem;
+    }
+    button:hover { background: #2ea043; }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    .err {
+      background: #3d1618;
+      color: #f85149;
+      padding: 0.75rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    a.back {
+      display: inline-block;
+      margin-top: 1.25rem;
+      color: #8b949e;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    a.back:hover { color: #e6edf3; }
+  </style>
+</head>
+<body>
+  <h1>Sign in</h1>
+  <p>Enter the password to view sensors and alert settings.</p>
+  <div id="error" class="err" hidden></div>
+  <form id="login-form">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required autofocus />
+    <button type="submit" id="submit">Sign in</button>
+  </form>
+  <script src="./login.js" type="module"></script>
+</body>
+</html>
