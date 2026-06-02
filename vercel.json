@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/poll",
-      "schedule": "*/5 * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",

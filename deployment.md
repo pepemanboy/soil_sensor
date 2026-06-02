@@ -56,7 +56,7 @@ Same as local development — see [`.env.example`](.env.example):
 |----------|----------|--------|
 | `DATABASE_URL` | Yes | Neon connection string (pooled recommended) |
 | `CONFIG_PASSWORD` | Yes | Dashboard / API password |
-| `CRON_SECRET` | Yes | Random string; Vercel Cron sends `Authorization: Bearer <value>` |
+| `CRON_SECRET` | Yes | Random string; external cron calls `/api/cron/poll` with `Authorization: Bearer <value>` |
 | `TUYA_BASE_URL` | Yes | e.g. `https://openapi.tuyaus.com` |
 | `TUYA_ACCESS_ID` | Yes | |
 | `TUYA_ACCESS_SECRET` | Yes | |
@@ -70,20 +70,35 @@ After deploy, open your Vercel URL, sign in with `CONFIG_PASSWORD`, and open **S
 
 ---
 
-## 4. History cron
+## 4. History polling (external cron — Hobby-friendly)
 
-`vercel.json` schedules `/api/cron/poll` every **5 minutes**. That route:
+Vercel **Hobby** only allows **one cron per day**, so this project does **not** use Vercel Cron. Poll history with a free external scheduler instead.
 
-- Verifies `Authorization: Bearer <CRON_SECRET>`
-- Fetches a Tuya snapshot and inserts rows into Neon
+The endpoint `GET https://YOUR_APP.vercel.app/api/cron/poll`:
 
-**Vercel plan limits:** On the **Hobby** plan, cron jobs may run only once per day. For 5-minute polling, use **Pro** or trigger the endpoint from an external scheduler (e.g. [cron-job.org](https://cron-job.org)) with the same `Bearer` header.
+- Requires header: `Authorization: Bearer YOUR_CRON_SECRET`
+- Fetches a Tuya snapshot and writes readings to Neon
 
-Manual test (replace host and secret):
+### Set up [cron-job.org](https://cron-job.org) (free)
+
+1. Create an account → **Cronjobs** → **Create cronjob**.
+2. **URL:** `https://your-app.vercel.app/api/cron/poll`
+3. **Schedule:** every 5 minutes (or every 15 if you prefer).
+4. **Request method:** GET (or POST — both work).
+5. Under **Advanced** → **Headers**, add:
+   - Name: `Authorization`
+   - Value: `Bearer YOUR_CRON_SECRET` (same value as in Vercel env)
+6. Save and enable the job.
+
+Manual test:
 
 ```bash
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-app.vercel.app/api/cron/poll
 ```
+
+You should get JSON like `{"ok":true,"stored":30,...}`.
+
+**Vercel Pro:** You can add a `crons` block to `vercel.json` instead (e.g. `*/5 * * * *` → `/api/cron/poll`). Hobby deploys must leave that out.
 
 ---
 
