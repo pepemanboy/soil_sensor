@@ -3,11 +3,12 @@ import { createStore } from '../history/store.mjs';
 import { applyDeviceFilters, fetchAllDevices, toPublicDevice } from '../tuya/devices.mjs';
 import { fetchSnapshot } from '../tuya/snapshot.mjs';
 import { loadConfig, saveConfigFromBody } from '../config/store.mjs';
-import { isValidDeviceId, safeRedirectPath, timingSafeEqualString } from '../lib/security.mjs';
+import { isValidDeviceId } from '../lib/security.mjs';
 import { HttpError, sendApiError } from './errors.mjs';
 import { assertAuthConfigured, handleLogin, handleLogout } from '../auth.mjs';
 import { applySecurityHeaders } from '../lib/headers.mjs';
 import { isAuthenticatedFromCookieHeader } from '../lib/auth-cookie.mjs';
+import { json } from '../lib/http-response.mjs';
 
 let depsPromise;
 
@@ -69,48 +70,52 @@ export async function handleApi(req, res) {
   const method = req.method ?? 'GET';
   const pathname = apiPathname(req);
 
-  if (!isPublicApi(pathname, method)) {
-    if (!isAuthenticatedFromCookieHeader(req.headers.cookie)) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  }
-
   try {
-    const { ctx, store } = await getDeps();
-
     if (pathname === '/login' && method === 'POST') {
+      assertAuthConfigured();
       req.body = await readJsonBody(req);
       return handleLogin(req, res);
     }
     if (pathname === '/logout' && method === 'POST') {
       return handleLogout(req, res);
     }
-    if (pathname === '/health' && method === 'GET') {
-      return res.status(200).json({ ok: true, history: store.kind });
+
+    if (!isPublicApi(pathname, method)) {
+      if (!isAuthenticatedFromCookieHeader(req.headers.cookie)) {
+        return json(res, 401, { error: 'Unauthorized' });
+      }
     }
+
+    if (pathname === '/health' && method === 'GET') {
+      const store = await createStore();
+      return json(res, 200, { ok: true, history: store.kind });
+    }
+
+    const { ctx, store } = await getDeps();
+
     if (pathname === '/devices' && method === 'GET') {
       let list = await fetchAllDevices(ctx);
       list = applyDeviceFilters(list);
-      return res.status(200).json({
+      return json(res, 200, {
         total: list.length,
         devices: list.map(toPublicDevice),
       });
     }
     if (pathname === '/snapshot' && method === 'GET') {
-      return res.status(200).json(await fetchSnapshot(ctx));
+      return json(res, 200, await fetchSnapshot(ctx));
     }
     if (pathname === '/config' && method === 'GET') {
-      return res.status(200).json({ config: await loadConfig() });
+      return json(res, 200, { config: await loadConfig() });
     }
     if (pathname === '/config' && (method === 'PUT' || method === 'PATCH')) {
       const body = await readJsonBody(req);
       const config = await saveConfigFromBody(body ?? {});
-      return res.status(200).json({ config });
+      return json(res, 200, { config });
     }
     if (pathname === '/history' && method === 'GET') {
       const query = parseHistoryQuery(queryFromReq(req));
       const readings = await store.queryReadings(query);
-      return res.status(200).json({
+      return json(res, 200, {
         device_id: query.device_id,
         code: query.code ?? null,
         readings,
@@ -118,7 +123,7 @@ export async function handleApi(req, res) {
       });
     }
 
-    return res.status(404).json({ error: 'Not found' });
+    return json(res, 404, { error: 'Not found' });
   } catch (err) {
     sendApiError(res, err);
   }

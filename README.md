@@ -57,8 +57,8 @@ Open http://localhost:3000 and sign in with `CONFIG_PASSWORD`.
 
 | Path | Purpose |
 |------|---------|
-| [`server.mjs`](server.mjs) | Local entry → [`app.mjs`](app.mjs) |
-| [`app.mjs`](app.mjs) | Express, poller, static UI |
+| [`local/server.mjs`](local/server.mjs) | Local entry → [`local/app.mjs`](local/app.mjs) |
+| [`local/app.mjs`](local/app.mjs) | Express, poller, static UI (not deployed to Vercel) |
 | [`api/`](api/dispatch.mjs) | Vercel serverless + Express routes |
 | [`tuya/`](tuya/context.mjs) | Tuya client, devices, snapshot |
 | [`public/`](public/README.md) | Dashboard UI |

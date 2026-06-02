@@ -2,12 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createTuyaContext } from './tuya/context.mjs';
-import { createStore } from './history/store.mjs';
-import { startHistoryPoller } from './history/poller.mjs';
-import { createApiRouter } from './api/routes.mjs';
-import { assertAuthConfigured, requireAuth } from './auth.mjs';
-import { securityHeaders } from './lib/security.mjs';
+import { createTuyaContext } from '../tuya/context.mjs';
+import { createStore } from '../history/store.mjs';
+import { startHistoryPoller } from '../history/poller.mjs';
+import { createApiRouter } from '../api/routes.mjs';
+import { assertAuthConfigured, requireAuth } from '../auth.mjs';
+import { securityHeaders } from '../lib/security.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,11 +27,11 @@ export async function createApp() {
   app.use(requireAuth);
   app.use('/api', createApiRouter({ ctx, store }));
 
-  if (process.env.HISTORY_POLL !== 'false' && !process.env.VERCEL) {
+  if (process.env.HISTORY_POLL !== 'false') {
     startHistoryPoller({ ctx, store });
   }
 
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use(express.static(path.join(__dirname, '../public')));
 
   return { app, ctx, store };
 }

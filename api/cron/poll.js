@@ -1,29 +1,26 @@
 import { runPollOnce } from '../../history/poll-once.mjs';
-
-function unauthorized(res) {
-  return res.status(401).json({ error: 'Unauthorized' });
-}
+import { json } from '../../lib/http-response.mjs';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return json(res, 405, { error: 'Method not allowed' });
   }
 
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) {
-    return res.status(500).json({ error: 'CRON_SECRET is not configured' });
+    return json(res, 500, { error: 'CRON_SECRET is not configured' });
   }
 
   const auth = req.headers.authorization ?? '';
   if (auth !== `Bearer ${secret}`) {
-    return unauthorized(res);
+    return json(res, 401, { error: 'Unauthorized' });
   }
 
   try {
     const result = await runPollOnce();
-    return res.status(200).json({ ok: true, ...result });
+    return json(res, 200, { ok: true, ...result });
   } catch (err) {
     console.error('Cron poll failed:', err);
-    return res.status(500).json({ error: err.message ?? 'Poll failed' });
+    return json(res, 500, { error: err.message ?? 'Poll failed' });
   }
 }

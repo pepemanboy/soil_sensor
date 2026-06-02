@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
+    "start": "node local/server.mjs",
     "dev": "vercel dev",
     "db:schema": "node scripts/ensure-schema.mjs"
   },

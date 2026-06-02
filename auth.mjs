@@ -5,6 +5,7 @@ import {
   setAuthCookieHeader,
   clearAuthCookieHeader,
 } from './lib/auth-cookie.mjs';
+import { json } from './lib/http-response.mjs';
 
 export { assertAuthConfigured };
 
@@ -56,7 +57,7 @@ export function requireAuth(req, res, next) {
   if (isAuthenticated(req)) return next();
 
   if (req.path.startsWith('/api/')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return json(res, 401, { error: 'Unauthorized' });
   }
   const nextUrl = safeRedirectPath(req.originalUrl || '/', '/');
   return res.redirect(`/login.html?next=${encodeURIComponent(nextUrl)}`);
@@ -64,29 +65,29 @@ export function requireAuth(req, res, next) {
 
 export function handleLogin(req, res) {
   if (loginRateLimited(req)) {
-    return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+    return json(res, 429, { error: 'Too many login attempts. Try again later.' });
   }
 
   const password = String(req.body?.password ?? '');
-  const expected = process.env.CONFIG_PASSWORD.trim();
-  if (!timingSafeEqualString(password, expected)) {
+  const expected = process.env.CONFIG_PASSWORD?.trim();
+  if (!expected || !timingSafeEqualString(password, expected)) {
     if (!process.env.VERCEL) {
       const locked = recordLoginFailure(clientIp(req));
       if (locked) {
-        return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+        return json(res, 429, { error: 'Too many login attempts. Try again later.' });
       }
     }
-    return res.status(401).json({ error: 'Invalid password' });
+    return json(res, 401, { error: 'Invalid password' });
   }
 
   if (!process.env.VERCEL) clearLoginFailures(clientIp(req));
   const secure = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
   setAuthCookieHeader(res, { secure });
-  return res.json({ ok: true });
+  return json(res, 200, { ok: true });
 }
 
 export function handleLogout(_req, res) {
   const secure = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
   clearAuthCookieHeader(res, { secure });
-  return res.json({ ok: true });
+  return json(res, 200, { ok: true });
 }

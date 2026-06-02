@@ -1,4 +1,5 @@
 import { HttpError } from '../lib/http-error.mjs';
+import { json } from '../lib/http-response.mjs';
 
 export { HttpError };
 
@@ -19,7 +20,7 @@ export function sendApiError(res, err, { defaultStatus = 500 } = {}) {
     if (err?.code != null) body.code = err.code;
     if (err?.raw != null) body.raw = err.raw;
   }
-  res.status(status).json(body);
+  return json(res, status, body);
 }
 
 /** Wrap async Express handlers so rejections become JSON error responses. */
@@ -37,7 +38,7 @@ export function sendTuyaResult(res, result) {
       body.code = result.code;
       body.raw = result;
     }
-    return res.status(502).json(body);
+    return json(res, 502, body);
   }
-  return res.json(result.result);
+  return json(res, 200, result.result);
 }
