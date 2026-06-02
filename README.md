@@ -1,73 +1,44 @@
 # soil_sensor
 
-Dashboard for Tuya / Smart Life Zigbee soil moisture sensors. Live readings, history charts, and per-plant alert thresholds.
+Dashboard for Tuya / Smart Life Zigbee soil moisture sensors. Hosted on **Vercel** with **Neon** Postgres.
 
-**Production:** [Vercel](https://vercel.com) + [Neon](https://neon.tech) — see **[deployment.md](deployment.md)**.
+## Setup
 
-**Local dev:** Node + Express (optional SQLite, or same Neon DB as production).
-
----
-
-## Quick start (local)
-
-1. Copy `.env.example` to `.env` and fill in:
-   - Tuya credentials ([Tuya IoT Platform](https://platform.tuya.com/))
-   - One of `TUYA_UID`, `TUYA_HOME_ID`, `TUYA_SCHEMA`, or `TUYA_DEVICE_IDS`
-   - `CONFIG_PASSWORD`
-   - `DATABASE_URL` (Neon) — recommended so local matches production
-2. Initialize the database (first time, with `DATABASE_URL` set):
+1. Copy `.env.example` to `.env` and fill in Tuya credentials, `DATABASE_URL` (Neon), `CONFIG_PASSWORD`, and `CRON_SECRET`.
+2. Initialize the database:
 
 ```bash
 npm install
 npm run db:schema
 ```
 
-3. Run:
+3. Run locally (same as production):
 
 ```bash
-npm start
+npm run dev
 ```
 
-Open http://localhost:3000 and sign in with `CONFIG_PASSWORD`.
+Open the URL Vercel prints (usually http://localhost:3000). Sign in with `CONFIG_PASSWORD`.
 
-**Without `DATABASE_URL`:** uses SQLite in `data/history.db` and `data/config.json` instead (fine for quick tests).
+Deploy and env vars: **[deployment.md](deployment.md)**.
 
----
-
-## npm scripts
+## Scripts
 
 | Script | Description |
 |--------|-------------|
-| `npm start` | Local server: UI + API + history poller |
-| `npm run dev` | `vercel dev` — serverless routes like production |
+| `npm run dev` | `vercel dev` — local serverless + static UI |
 | `npm run db:schema` | Create Neon tables + default config |
 
----
-
-## Features
-
-- **Dashboard** — moisture, temperature, battery; several sort options
-- **Charts** — 24h / 7d / 30d history per sensor
-- **Settings** — low-battery %, default moisture %, per-device overrides (by device ID)
-- **Auth** — `CONFIG_PASSWORD` protects UI and APIs
-
----
-
-## Project layout
+## Layout
 
 | Path | Purpose |
 |------|---------|
-| [`local/server.mjs`](local/server.mjs) | Local entry → [`local/app.mjs`](local/app.mjs) |
-| [`local/app.mjs`](local/app.mjs) | Express, poller, static UI (not deployed to Vercel) |
-| [`api/`](api/dispatch.mjs) | Vercel serverless + Express routes |
-| [`tuya/`](tuya/context.mjs) | Tuya client, devices, snapshot |
-| [`public/`](public/README.md) | Dashboard UI |
-| [`config/`](config/README.md) | Alert thresholds |
-| [`history/`](history/README.md) | Readings store + poller |
+| [`api/index.js`](api/index.js) | All `/api/*` routes (except cron) |
+| [`api/cron/poll.js`](api/cron/poll.js) | History polling endpoint |
+| [`api/dispatch.mjs`](api/dispatch.mjs) | Route logic |
+| [`middleware.js`](middleware.js) | Redirect unauthenticated users to login |
+| [`public/`](public/) | Dashboard UI |
+| [`tuya/`](tuya/context.mjs) | Tuya API client |
 | [`lib/db.mjs`](lib/db.mjs) | Neon schema + pool |
 
----
-
-## Environment
-
-See [`.env.example`](.env.example). Plant names like `3 - Fern` are parsed in the UI; history and config use **device ID**.
+Plant names like `3 - Fern` are parsed in the UI; history and config use **device ID**.

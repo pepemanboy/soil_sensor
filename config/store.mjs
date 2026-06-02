@@ -1,8 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import { dataPath } from '../lib/paths.mjs';
 import { HttpError } from '../lib/http-error.mjs';
-import { databaseUrl, getPool } from '../lib/db.mjs';
+import { getPool } from '../lib/db.mjs';
 import {
   DEFAULT_CONFIG,
   normalizeConfig,
@@ -10,18 +7,6 @@ import {
 } from './normalize.mjs';
 
 export { DEFAULT_CONFIG, moistureThresholdForDevice };
-
-function configPath() {
-  return process.env.CONFIG_PATH?.trim() || dataPath('config.json');
-}
-
-function ensureDir(filePath) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-}
-
-export function getConfigPath() {
-  return databaseUrl() ? 'postgres:app_config' : configPath();
-}
 
 async function loadConfigFromDb() {
   const pool = await getPool();
@@ -37,45 +22,6 @@ async function loadConfigFromDb() {
   return normalizeConfig(r.rows[0].payload);
 }
 
-function loadConfigFromFile() {
-  const file = configPath();
-  try {
-    if (!fs.existsSync(file)) return { ...DEFAULT_CONFIG, moistureThresholds: {} };
-    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return normalizeConfig(raw);
-  } catch (e) {
-    console.error('Config read failed, using defaults:', e.message);
-    return normalizeConfig({});
-  }
-}
-
-export async function loadConfig() {
-  if (databaseUrl()) return loadConfigFromDb();
-  return loadConfigFromFile();
-}
-
-async function saveConfigToDb(partial) {
-  const current = await loadConfigFromDb();
-  const next = mergeConfigPatch(current, partial);
-  const pool = await getPool();
-  await pool.query(
-    `UPDATE app_config SET payload = $1::jsonb, updated_at = $2 WHERE id = 'default'`,
-    [JSON.stringify(next), Date.now()]
-  );
-  return next;
-}
-
-function saveConfigToFile(partial) {
-  const current = loadConfigFromFile();
-  const next = mergeConfigPatch(current, partial);
-  const file = configPath();
-  ensureDir(file);
-  const tmp = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
-  fs.renameSync(tmp, file);
-  return next;
-}
-
 function mergeConfigPatch(current, partial) {
   const next = normalizeConfig({ ...current, ...partial });
   if (partial?.moistureThresholds) {
@@ -87,9 +33,19 @@ function mergeConfigPatch(current, partial) {
   return next;
 }
 
+export async function loadConfig() {
+  return loadConfigFromDb();
+}
+
 export async function saveConfig(partial) {
-  if (databaseUrl()) return saveConfigToDb(partial);
-  return saveConfigToFile(partial);
+  const current = await loadConfigFromDb();
+  const next = mergeConfigPatch(current, partial);
+  const pool = await getPool();
+  await pool.query(
+    `UPDATE app_config SET payload = $1::jsonb, updated_at = $2 WHERE id = 'default'`,
+    [JSON.stringify(next), Date.now()]
+  );
+  return next;
 }
 
 /** Build and persist a config patch from an API request body. */

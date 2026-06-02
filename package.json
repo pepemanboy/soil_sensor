@@ -3,18 +3,19 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node local/server.mjs",
     "dev": "vercel dev",
     "db:schema": "node scripts/ensure-schema.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Tuya soil sensor dashboard (Vercel + Neon or local Express)",
+  "description": "Tuya soil sensor dashboard (Vercel + Neon)",
   "dependencies": {
     "@tuya/tuya-connector-nodejs": "^2.1.2",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
     "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "vercel": "^41.0.0"
   }
 }

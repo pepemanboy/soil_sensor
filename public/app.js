@@ -122,7 +122,7 @@ async function fetchHistory(deviceId, code, hours) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const hint = res.status === 404
-      ? ' History API missing — restart the server (npm start).'
+      ? ' History API missing — run npm run dev and try again.'
       : '';
     throw new Error((body.error || res.statusText) + hint);
   }
@@ -236,7 +236,7 @@ function renderChart(canvas, readings, metric, hours) {
     canvas.hidden = true;
     if (emptyEl) {
       emptyEl.hidden = false;
-      emptyEl.textContent = 'No history yet — readings appear after the poller runs.';
+      emptyEl.textContent = 'No history yet — readings appear after cron-job.org polls /api/cron/poll.';
     }
     return;
   }

@@ -1,8 +1,7 @@
 import { handleApi } from './dispatch.mjs';
 import { json } from '../lib/http-response.mjs';
 
-/** Shared Vercel serverless entry with top-level error handling. */
-export default async function vercelHandler(req, res) {
+export default async function handler(req, res) {
   try {
     await handleApi(req, res);
   } catch (err) {

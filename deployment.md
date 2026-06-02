@@ -1,70 +1,46 @@
 # Deployment (Vercel + Neon)
 
-Hosted dashboard: **Vercel** (static UI + serverless API) and **Neon** (Postgres for history and settings).
-
----
-
 ## Architecture
 
 | Piece | Where | Role |
 |-------|--------|------|
 | Static UI | Vercel `public/` | Dashboard, login, settings |
-| API | Vercel `api/` | Tuya snapshot, config, history |
-| History polling | [cron-job.org](https://cron-job.org) (or similar) | Calls `/api/cron/poll` on a schedule |
+| API | `api/index.js` | Tuya snapshot, config, history |
+| History polling | [cron-job.org](https://cron-job.org) | `GET /api/cron/poll` on a schedule |
 | Database | Neon Postgres | `readings` + `app_config` |
 
 ---
 
-## 1. Neon database
+## 1. Neon
 
 1. Create a project at [Neon](https://neon.tech).
-2. Copy the **pooled** connection string (`…-pooler.…`).
-3. Ensure `?sslmode=require` is in the URL.
-
-From your machine (with `DATABASE_URL` in `.env`):
+2. Copy the **pooled** connection string (`…-pooler.…`) with `?sslmode=require`.
 
 ```bash
 npm install
-npm run db:schema
+npm run db:schema   # needs DATABASE_URL in .env
 ```
 
 ---
 
-## 2. Tuya credentials
+## 2. Vercel
 
-See [`.env.example`](.env.example): `TUYA_BASE_URL`, `TUYA_ACCESS_ID`, `TUYA_ACCESS_SECRET`, and one discovery option (`TUYA_UID`, etc.).
+1. Import [github.com/pepemanboy/soil_sensor](https://github.com/pepemanboy/soil_sensor).
+2. **Framework preset:** **Other** — no build command.
+3. **Environment variables:** `DATABASE_URL`, `CONFIG_PASSWORD`, `CRON_SECRET`, and all Tuya vars (see `.env.example`).
+4. Deploy. Use the **production** URL (not a preview URL unless preview protection is disabled).
 
----
-
-## 3. Deploy to Vercel
-
-1. Import [the GitHub repo](https://github.com/pepemanboy/soil_sensor) at [vercel.com/new](https://vercel.com/new).
-2. **Framework preset:** **Other** — leave build/output empty.
-3. **Environment variables:**
-
-| Variable | Required |
-|----------|----------|
-| `DATABASE_URL` | Yes (Neon pooled URL) |
-| `CONFIG_PASSWORD` | Yes |
-| `CRON_SECRET` | Yes (random string) |
-| Tuya vars | Yes |
-
-4. Deploy. Use **https://your-project.vercel.app** (production), not a preview URL, unless you disable preview protection.
-
-**“Authentication Required” page:** Vercel **Deployment Protection** — **Settings → Deployment Protection** → allow public access on Production (and Preview if needed). Then use this app’s login (`CONFIG_PASSWORD`).
+**“Authentication Required” (Vercel SSO):** **Settings → Deployment Protection** → allow public access. App login uses `CONFIG_PASSWORD`.
 
 ---
 
-## 4. History polling (cron-job.org)
+## 3. History polling (cron-job.org)
 
-Vercel Hobby cannot run cron every 5 minutes. Use a free external scheduler:
+Vercel Hobby cannot run frequent built-in crons. Use [cron-job.org](https://cron-job.org):
 
-1. [cron-job.org](https://cron-job.org) → **Create cronjob**
-2. **URL:** `https://your-app.vercel.app/api/cron/poll`
-3. **Schedule:** every 5–15 minutes
-4. **Header:** `Authorization` = `Bearer YOUR_CRON_SECRET`
-
-Test:
+- **URL:** `https://your-app.vercel.app/api/cron/poll`
+- **Schedule:** every 5–15 minutes
+- **Header:** `Authorization` = `Bearer YOUR_CRON_SECRET`
 
 ```bash
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-app.vercel.app/api/cron/poll
@@ -72,24 +48,26 @@ curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-app.vercel.app/api
 
 ---
 
-## 5. Local development
-
-Same `.env` as production (including `DATABASE_URL`):
+## 4. Local development
 
 ```bash
+cp .env.example .env   # fill in all values
 npm install
-npm run db:schema   # once
-npm start
+npm run db:schema
+npm run dev
 ```
 
-Open http://localhost:3000.
+Uses `vercel dev` with the same serverless functions as production. Pull env from Vercel optionally:
 
-To mimic serverless routes: `vercel link`, `vercel env pull .env.local`, `npm run dev`.
+```bash
+npx vercel link
+npx vercel env pull .env.local
+```
 
 ---
 
-## 6. Security
+## 5. Security
 
 - Strong `CONFIG_PASSWORD` and `CRON_SECRET`
 - Never commit `.env`
-- Neon: pooled connection string; restrict access if your plan allows
+- Neon: pooled connection string

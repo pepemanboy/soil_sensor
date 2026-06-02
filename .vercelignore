@@ -1,12 +1,5 @@
-# Local Express only — not serverless functions
-local/
-app.mjs
-server.mjs
 api/dispatch.mjs
-api/routes.mjs
 api/errors.mjs
-
-# Dev / runtime data
 scripts/
 data/
 .env
