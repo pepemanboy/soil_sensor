@@ -28,7 +28,7 @@ async function readJson(res, label) {
   const contentType = res.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
     const hint = text.trimStart().startsWith('<!')
-      ? `${label}: server returned HTML instead of JSON. Run npm run dev and try again.`
+      ? `${label}: server returned HTML instead of JSON. Run npm run local and try again.`
       : `${label}: unexpected response (${res.status})`;
     throw new Error(hint);
   }

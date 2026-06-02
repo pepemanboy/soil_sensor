@@ -122,7 +122,7 @@ async function fetchHistory(deviceId, code, hours) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const hint = res.status === 404
-      ? ' History API missing — run npm run dev and try again.'
+      ? ' History API missing — run npm run local and try again.'
       : '';
     throw new Error((body.error || res.statusText) + hint);
   }

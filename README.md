@@ -15,10 +15,12 @@ npm run db:schema
 3. Run locally (same as production):
 
 ```bash
-npm run dev
+npm run local
 ```
 
 Open the URL Vercel prints (usually http://localhost:3000). Sign in with `CONFIG_PASSWORD`.
+
+(`npm run dev` cannot be named `dev` — Vercel treats that as a recursive loop.)
 
 Deploy and env vars: **[deployment.md](deployment.md)**.
 
@@ -26,7 +28,7 @@ Deploy and env vars: **[deployment.md](deployment.md)**.
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | `vercel dev` — local serverless + static UI |
+| `npm run local` | `vercel dev` — local serverless + static UI |
 | `npm run db:schema` | Create Neon tables + default config |
 
 ## Layout

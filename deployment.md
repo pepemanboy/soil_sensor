@@ -54,10 +54,10 @@ curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-app.vercel.app/api
 cp .env.example .env   # fill in all values
 npm install
 npm run db:schema
-npm run dev
+npm run local
 ```
 
-If you see **“vercel dev must not recursively invoke itself”**, clear **Development Command** in the Vercel project (**Settings → General**) or redeploy after pulling the latest `vercel.json` (`devCommand` is set to `null`).
+Use **`npm run local`** (not `npm run dev`) — a script named `dev` that runs `vercel dev` triggers a recursive-loop error. If it still fails, clear **Development Command** under Vercel **Settings → General**.
 
 Uses `vercel dev` with the same serverless functions as production. Pull env from Vercel optionally:
 
