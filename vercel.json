@@ -1,4 +1,7 @@
 {
+  "installCommand": "npm install",
+  "buildCommand": null,
+  "devCommand": null,
   "rewrites": [
     { "source": "/api/((?!cron/).*)", "destination": "/api" }
   ],

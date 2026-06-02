@@ -57,6 +57,8 @@ npm run db:schema
 npm run dev
 ```
 
+If you see **“vercel dev must not recursively invoke itself”**, clear **Development Command** in the Vercel project (**Settings → General**) or redeploy after pulling the latest `vercel.json` (`devCommand` is set to `null`).
+
 Uses `vercel dev` with the same serverless functions as production. Pull env from Vercel optionally:
 
 ```bash
