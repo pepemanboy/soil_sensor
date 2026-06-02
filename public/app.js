@@ -520,6 +520,11 @@ async function loadSnapshot() {
 
 refreshBtn.addEventListener('click', loadSnapshot);
 
+document.getElementById('logout')?.addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+  window.location.href = '/login.html';
+});
+
 sortByEl.addEventListener('change', async () => {
   if (!lastSnapshot) return;
   await renderSensorList(lastSnapshot.devices, lastSnapshot.statusById, lastSnapshot.t);
