@@ -37,3 +37,18 @@ export function escapeHtml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+/** Per-device override, else default (required in saved config). */
+export function moistureThresholdForDevice(config, deviceId) {
+  if (!config) return null;
+  const per = config.moistureThresholds?.[deviceId];
+  if (per != null) return per;
+  return config.defaultMoisturePercent ?? null;
+}
+
+/** Signed points above (+) or below (−) the alert threshold. */
+export function moistureDelta(humidityRaw, threshold) {
+  const humidity = parseMetricValue('humidity', humidityRaw);
+  if (humidity == null || threshold == null) return null;
+  return Math.round(humidity) - Math.round(threshold);
+}

@@ -1,6 +1,8 @@
 import {
   compareDevicesByNumber,
   escapeHtml,
+  moistureDelta,
+  moistureThresholdForDevice,
   parseMetricValue,
   parsePlantName,
   statusMap,
@@ -24,11 +26,13 @@ const CHART_METRICS = [
 const ICONS = {
   humidity: `<svg class="metric-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.69l5.66 5.66a6 6 0 1 1-8.49 0L12 2.69z"/></svg>`,
   temp: `<svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>`,
+  warn: `<svg class="moisture-warn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zM11 10v5h2v-5h-2zm0 6v2h2v-2h-2z"/></svg>`,
 };
 
 const chartRegistry = new Map();
 
 let lastSnapshot = null;
+let lastConfig = null;
 
 function redirectToLogin() {
   const next = encodeURIComponent(window.location.pathname + window.location.search);
@@ -38,6 +42,25 @@ function redirectToLogin() {
 function formatHumidity(raw) {
   const n = parseMetricValue('humidity', raw);
   return n == null ? '—' : `${Math.round(n)}%`;
+}
+
+function buildMoistureDeltaHtml(humidityRaw, deviceId) {
+  const threshold = moistureThresholdForDevice(lastConfig, deviceId);
+  const delta = moistureDelta(humidityRaw, threshold);
+  if (delta == null) return '';
+  const sign = delta >= 0 ? '+' : '-';
+  const abs = Math.abs(delta);
+  const below = delta < 0;
+  const label =
+    delta >= 0
+      ? `${abs}% above alert threshold (${threshold}%)`
+      : `${abs}% below alert threshold (${threshold}%) — needs water`;
+  const warn = below
+    ? `<span class="moisture-warn" title="${escapeHtml(label)}">${ICONS.warn}</span>`
+    : '';
+  const deltaClass = below ? 'moisture-delta moisture-delta--warn' : 'moisture-delta';
+  const deltaHtml = `<span class="${deltaClass}" title="${escapeHtml(label)}">(${sign}${abs})</span>`;
+  return `${deltaHtml}${warn}`;
 }
 
 function formatTemp(raw) {
@@ -123,13 +146,89 @@ function destroyChartOnCanvas(canvas) {
   }
 }
 
+function buildChartDatasets(metric, deviceId, data, pointCount) {
+  const datasets = [{
+    label: metric.label,
+    data,
+    borderColor: metric.color,
+    backgroundColor: `${metric.color}22`,
+    fill: true,
+    tension: 0.25,
+    pointRadius: pointCount > 80 ? 0 : 2,
+    pointHoverRadius: 3,
+    borderWidth: 2,
+    order: 1,
+  }];
+
+  if (metric.code === 'humidity') {
+    const threshold = moistureThresholdForDevice(lastConfig, deviceId);
+    if (threshold != null) {
+      datasets.unshift({
+        label: `Threshold (${threshold}%)`,
+        data: Array(pointCount).fill(threshold),
+        borderColor: 'rgba(139, 148, 158, 0.5)',
+        borderWidth: 1,
+        borderDash: [5, 5],
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        fill: false,
+        tension: 0,
+        order: 0,
+      });
+    }
+  }
+
+  return datasets;
+}
+
+function chartOptions(metric, points, hours) {
+  const suffix = metric.code === 'temp_current' ? ' °C' : '%';
+  const fixedPercentScale =
+    metric.code === 'humidity' || metric.code === 'battery_percentage';
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title(items) {
+            return new Date(points[items[0].dataIndex].x).toLocaleString();
+          },
+          label(ctx) {
+            const v = ctx.parsed.y;
+            if (ctx.dataset.label?.startsWith('Threshold')) {
+              return `Alert threshold: ${v}%`;
+            }
+            return `${v}${suffix}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: '#30363d' },
+        ticks: { color: '#8b949e', maxTicksLimit: 5, maxRotation: 0 },
+      },
+      y: {
+        grid: { color: '#30363d' },
+        ticks: { color: '#8b949e' },
+        min: fixedPercentScale ? 0 : undefined,
+        max: fixedPercentScale ? 100 : undefined,
+      },
+    },
+  };
+}
+
 function renderChart(canvas, readings, metric, hours) {
+  const deviceId = canvas.dataset.deviceId || '';
   const points = readings
     .map((r) => ({ x: r.recorded_at, y: parseMetricValue(metric.code, r.value) }))
     .filter((p) => p.y != null);
 
   const emptyEl = canvas.parentElement.querySelector('.chart-empty');
-  const chartKey = `${canvas.dataset.deviceId || ''}:${metric.code}`;
+  const chartKey = `${deviceId}:${metric.code}`;
   canvas.dataset.chartKey = chartKey;
 
   if (!points.length) {
@@ -147,69 +246,24 @@ function renderChart(canvas, readings, metric, hours) {
 
   const labels = points.map((p) => formatAxisLabel(p.x, hours));
   const data = points.map((p) => p.y);
-  const suffix = metric.code === 'temp_current' ? ' °C' : '%';
-
-  const config = {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: metric.label,
-        data,
-        borderColor: metric.color,
-        backgroundColor: `${metric.color}22`,
-        fill: true,
-        tension: 0.25,
-        pointRadius: points.length > 80 ? 0 : 2,
-        pointHoverRadius: 3,
-        borderWidth: 2,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title(items) {
-              return new Date(points[items[0].dataIndex].x).toLocaleString();
-            },
-            label(ctx) {
-              return `${ctx.parsed.y}${suffix}`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: { color: '#30363d' },
-          ticks: { color: '#8b949e', maxTicksLimit: 5, maxRotation: 0 },
-        },
-        y: {
-          grid: { color: '#30363d' },
-          ticks: { color: '#8b949e' },
-        },
-      },
-    },
-  };
+  const datasets = buildChartDatasets(metric, deviceId, data, data.length);
+  const options = chartOptions(metric, points, hours);
 
   const existing = chartRegistry.get(chartKey);
   if (existing?.canvas === canvas) {
     existing.data.labels = labels;
-    existing.data.datasets[0].data = data;
-    existing.data.datasets[0].label = metric.label;
-    existing.data.datasets[0].borderColor = metric.color;
-    existing.data.datasets[0].backgroundColor = `${metric.color}22`;
-    existing.options.scales.y.min = undefined;
-    existing.options.scales.y.max = undefined;
+    existing.data.datasets = datasets;
+    existing.options = options;
     existing.update();
     return;
   }
 
   destroyChartOnCanvas(canvas);
-  chartRegistry.set(chartKey, new Chart(canvas, config));
+  chartRegistry.set(chartKey, new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options,
+  }));
 }
 
 async function loadChartForRow(row) {
@@ -285,6 +339,9 @@ function buildSensorRow(device, status) {
   const st = statusMap(status);
   const onlineClass = device.online ? 'on' : 'off';
   const onlineLabel = device.online ? 'online' : 'offline';
+  const th = moistureThresholdForDevice(lastConfig, device.id);
+  const moistureD = moistureDelta(st.humidity, th);
+  const humidityLowClass = moistureD != null && moistureD < 0 ? ' humidity--low' : '';
 
   const row = document.createElement('article');
   row.className = 'sensor-row';
@@ -295,9 +352,12 @@ function buildSensorRow(device, status) {
       <div class="sensor-name">
         ${buildPlantNameHtml(device.name, onlineClass, onlineLabel)}
       </div>
-      <div class="metric humidity" title="Soil moisture">
+      <div class="metric humidity${humidityLowClass}" title="Soil moisture">
         ${ICONS.humidity}
-        <span class="metric-value">${escapeHtml(formatHumidity(st.humidity))}</span>
+        <span class="metric-humidity-values">
+          <span class="metric-value">${escapeHtml(formatHumidity(st.humidity))}</span>
+          ${buildMoistureDeltaHtml(st.humidity, device.id)}
+        </span>
       </div>
       <div class="metric temp" title="Temperature">
         ${ICONS.temp}
@@ -324,6 +384,23 @@ function batterySortKey(status) {
 function tempSortKey(status) {
   const n = parseMetricValue('temp_current', statusMap(status).temp_current);
   return n == null ? Infinity : n;
+}
+
+function thresholdClosestKey(device, status) {
+  const th = moistureThresholdForDevice(lastConfig, device.id);
+  const humidityRaw = statusMap(status).humidity;
+  const delta = moistureDelta(humidityRaw, th);
+  if (delta == null) return Infinity;
+  return Math.abs(delta);
+}
+
+// Secondary sort when distances are equal:
+// "closest to threshold" can be on either side; we prefer the more urgent one (below).
+function thresholdDeltaKey(device, status) {
+  const th = moistureThresholdForDevice(lastConfig, device.id);
+  const humidityRaw = statusMap(status).humidity;
+  const delta = moistureDelta(humidityRaw, th);
+  return delta == null ? Infinity : delta;
 }
 
 function sortDevices(devices, statusById) {
@@ -358,6 +435,17 @@ function sortDevices(devices, statusById) {
       if (offA !== offB) return offA - offB;
       return humiditySortKey(stA) - humiditySortKey(stB);
     }
+    if (mode === 'threshold_closest') {
+      const distA = thresholdClosestKey(a, stA);
+      const distB = thresholdClosestKey(b, stB);
+      if (distA !== distB) return distA - distB;
+
+      const deltaA = thresholdDeltaKey(a, stA);
+      const deltaB = thresholdDeltaKey(b, stB);
+      if (deltaA !== deltaB) return deltaA - deltaB; // negative (below) first
+
+      return humiditySortKey(stA) - humiditySortKey(stB);
+    }
     // moisture_asc (default)
     return humiditySortKey(stA) - humiditySortKey(stB);
   });
@@ -387,19 +475,32 @@ async function loadSnapshot() {
   refreshBtn.disabled = true;
 
   try {
-    const res = await fetch('/api/snapshot');
-    if (res.status === 401) {
+    const [snapRes, cfgRes] = await Promise.all([
+      fetch('/api/snapshot'),
+      fetch('/api/config'),
+    ]);
+    if (snapRes.status === 401 || cfgRes.status === 401) {
       redirectToLogin();
       return;
     }
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      showError(body.error || res.statusText);
+    const body = await snapRes.json().catch(() => ({}));
+    const cfgBody = await cfgRes.json().catch(() => ({}));
+    if (!snapRes.ok) {
+      showError(body.error || snapRes.statusText);
       sensorList.innerHTML = '';
       lastSnapshot = null;
+      lastConfig = null;
+      return;
+    }
+    if (!cfgRes.ok) {
+      showError(cfgBody.error || cfgRes.statusText);
+      sensorList.innerHTML = '';
+      lastSnapshot = null;
+      lastConfig = null;
       return;
     }
 
+    lastConfig = cfgBody.config ?? null;
     lastSnapshot = {
       devices: body.devices ?? [],
       statusById: body.statusById ?? {},
@@ -411,6 +512,7 @@ async function loadSnapshot() {
     sensorList.innerHTML = '';
     destroyCharts();
     lastSnapshot = null;
+    lastConfig = null;
   } finally {
     refreshBtn.disabled = false;
   }

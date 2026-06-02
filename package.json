@@ -4,21 +4,17 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "query": "node query-sensors.mjs",
-    "discover": "node discover.mjs",
-    "poll": "node poll-history.mjs",
-    "poll:once": "node poll-history.mjs --once",
-    "alert:once": "node send-alert.mjs"
+    "dev": "vercel dev",
+    "db:schema": "node scripts/ensure-schema.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Tuya soil sensor viewer (local Express API + static UI)",
+  "description": "Tuya soil sensor dashboard (Vercel + Neon or local Express)",
   "dependencies": {
     "@tuya/tuya-connector-nodejs": "^2.1.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "nodemailer": "^8.0.8",
     "pg": "^8.16.3"
   }
 }

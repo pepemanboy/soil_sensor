@@ -1,6 +1,6 @@
 # soil_sensor
 
-Local dashboard for Tuya / Smart Life Zigbee soil moisture sensors. Reads live status from the Tuya Open API, stores history locally, and can email a daily alert when plants need attention.
+Local dashboard for Tuya / Smart Life Zigbee soil moisture sensors. Reads live status from the Tuya Open API and stores history locally.
 
 ## Quick start
 
@@ -53,34 +53,25 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build a
 - `.env` and `./data` are mounted into the container; edits on the host apply after restart.
 - Health check (no login): http://127.0.0.1:3000/api/health
 
-### Docker production (VPS + HTTPS)
+### Production (Vercel + Neon)
 
-```bash
-cp .env.example .env   # edit: Tuya, CONFIG_PASSWORD, SMTP optional
-mkdir -p data
-# edit Caddyfile with your domain, then:
-docker compose up -d --build
-```
+Hosted API, static UI, Postgres history, and a cron poller — no server to maintain.
 
-See [deployment.md](deployment.md) for the full VPS + HTTPS plan.
+See **[deployment.md](deployment.md)** for Neon setup, Vercel env vars, and cron configuration.
 
 ## npm scripts
 
 | Script | Description |
 |--------|-------------|
-| `npm start` | Web UI + API + history poller + daily email scheduler |
-| `npm run discover` | Test device discovery (`node discover.mjs [device_id]`) |
-| `npm run query` | Print sensor status in the terminal |
-| `npm run poll` | Run history poller standalone |
-| `npm run poll:once` | Store one history snapshot and exit |
-| `npm run alert:once` | Send the daily alert email now (for testing) |
+| `npm start` | Local Express: UI + API + in-process history poller |
+| `npm run dev` | Vercel dev server (serverless API routes) |
+| `npm run db:schema` | Create Neon tables + default config (needs `DATABASE_URL`) |
 
 ## Features
 
 - **Dashboard** — moisture, temperature, battery; sort by moisture, number, battery, or offline
 - **Charts** — optional 24h / 7d / 30d history per sensor
 - **Alert config** — global low-battery %, default low-moisture %, per-plant overrides (keyed by device ID, not name)
-- **Daily email** — plants below moisture threshold, low battery, or offline (SMTP in `.env`)
 - **Auth** — `CONFIG_PASSWORD` (required) protects the dashboard, APIs, and alert config
 
 ## Project layout
@@ -88,28 +79,21 @@ See [deployment.md](deployment.md) for the full VPS + HTTPS plan.
 | Path | Purpose |
 |------|---------|
 | [`server.mjs`](server.mjs) | Process entry (calls [`app.mjs`](app.mjs)) |
-| [`app.mjs`](app.mjs) | Wire Express, pollers, schedulers, static UI |
+| [`app.mjs`](app.mjs) | Wire Express, poller, static UI |
 | [`api/`](api/routes.mjs) | HTTP routes and error mapping |
 | [`tuya/`](tuya/context.mjs) | Tuya client, device discovery, live snapshot |
 | [`metrics.mjs`](metrics.mjs) | Shared metric / plant-name parsing |
 | [`auth.mjs`](auth.mjs) | Password gate for the whole app (`CONFIG_PASSWORD`) |
 | [`lib/`](lib/paths.mjs) | Project/data paths (`DATA_DIR` override) |
 | [`public/`](public/README.md) | Static HTML/JS UI |
-| [`config/`](config/README.md) | Alert thresholds on disk |
-| [`history/`](history/README.md) | SQLite/Postgres readings + poller |
-| [`alerts/`](alerts/README.md) | Evaluate rules and send email |
+| [`config/`](config/README.md) | Alert thresholds (file locally, Postgres on Vercel) |
+| [`history/`](history/README.md) | SQLite (local) or Neon readings + poller/cron |
+| [`api/`](api/dispatch.mjs) | Vercel serverless handlers + Express routes |
 | [`data/`](data/README.md) | Runtime files (gitignored except this README) |
 
 ## Environment
 
-See [`.env.example`](.env.example) for Tuya, history DB, `CONFIG_PASSWORD`, and SMTP settings.
+See [`.env.example`](.env.example) for Tuya, history DB, and `CONFIG_PASSWORD`.
 
 Plant names like `3 - Fern` are parsed in the UI for display and sorting; history and config always use **device ID**.
 
-## CLI helpers
-
-```bash
-node discover.mjs              # list discovery config status
-node discover.mjs <device_id>  # test one device
-node query-sensors.mjs         # print current readings
-```

@@ -21,6 +21,5 @@ Default datapoints: `humidity`, `temp_current`, `battery_percentage` (override w
 ## Related
 
 - `../tuya/snapshot.mjs` — `snapshotToReadings()` builds rows for insert
-- `../poll-history.mjs` — run the poller without the web server
 
 Env: `HISTORY_DB_PATH`, `POLL_INTERVAL_MS` (default 5 min), `POLL_ON_START`, `HISTORY_POLL=false` to disable in server.

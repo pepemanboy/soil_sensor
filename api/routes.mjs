@@ -59,11 +59,11 @@ export function createApiRouter({ ctx, store }) {
   }));
 
   router.get('/config', asyncHandler(async (_req, res) => {
-    res.json({ config: loadConfig() });
+    res.json({ config: await loadConfig() });
   }));
 
   router.put('/config', asyncHandler(async (req, res) => {
-    const config = saveConfigFromBody(req.body ?? {});
+    const config = await saveConfigFromBody(req.body ?? {});
     res.json({ config });
   }));
 

@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 import { createTuyaContext } from './tuya/context.mjs';
 import { createStore } from './history/store.mjs';
 import { startHistoryPoller } from './history/poller.mjs';
-import { startAlertScheduler } from './alerts/scheduler.mjs';
 import { createApiRouter } from './api/routes.mjs';
 import { assertAuthConfigured, requireAuth } from './auth.mjs';
 import { securityHeaders } from './lib/security.mjs';
@@ -28,11 +27,9 @@ export async function createApp() {
   app.use(requireAuth);
   app.use('/api', createApiRouter({ ctx, store }));
 
-  if (process.env.HISTORY_POLL !== 'false') {
+  if (process.env.HISTORY_POLL !== 'false' && !process.env.VERCEL) {
     startHistoryPoller({ ctx, store });
   }
-
-  startAlertScheduler({ ctx });
 
   app.use(express.static(path.join(__dirname, 'public')));
 

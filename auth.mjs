@@ -1,48 +1,19 @@
-import crypto from 'crypto';
 import { clientIp, safeRedirectPath, timingSafeEqualString } from './lib/security.mjs';
+import {
+  assertAuthConfigured,
+  isAuthenticatedFromCookieHeader,
+  setAuthCookieHeader,
+  clearAuthCookieHeader,
+} from './lib/auth-cookie.mjs';
 
-const COOKIE_NAME = 'soil_auth';
+export { assertAuthConfigured };
+
 const LOGIN_MAX_ATTEMPTS = 10;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-
 const loginAttempts = new Map();
 
-export function assertAuthConfigured() {
-  if (!process.env.CONFIG_PASSWORD?.trim()) {
-    throw new Error('CONFIG_PASSWORD is required in .env (see .env.example)');
-  }
-}
-
-function authToken() {
-  const secret = process.env.CONFIG_PASSWORD.trim();
-  return crypto.createHmac('sha256', secret).update('config-ok').digest('hex');
-}
-
-function parseCookies(header) {
-  const out = {};
-  if (!header) return out;
-  for (const part of header.split(';')) {
-    const i = part.indexOf('=');
-    if (i === -1) continue;
-    const key = part.slice(0, i).trim();
-    const val = part.slice(i + 1).trim();
-    if (key) out[key] = decodeURIComponent(val);
-  }
-  return out;
-}
-
-function cookieMatches(token) {
-  const expected = Buffer.from(authToken(), 'utf8');
-  const provided = Buffer.from(String(token ?? ''), 'utf8');
-  if (expected.length !== provided.length) {
-    crypto.timingSafeEqual(expected, expected);
-    return false;
-  }
-  return crypto.timingSafeEqual(expected, provided);
-}
-
 export function isAuthenticated(req) {
-  return cookieMatches(parseCookies(req.headers.cookie)[COOKIE_NAME]);
+  return isAuthenticatedFromCookieHeader(req.headers.cookie);
 }
 
 function isPublicPath(req) {
@@ -69,6 +40,7 @@ function clearLoginFailures(ip) {
 }
 
 function loginRateLimited(req) {
+  if (process.env.VERCEL) return false;
   const ip = clientIp(req);
   const entry = loginAttempts.get(ip);
   if (!entry) return false;
@@ -98,28 +70,23 @@ export function handleLogin(req, res) {
   const password = String(req.body?.password ?? '');
   const expected = process.env.CONFIG_PASSWORD.trim();
   if (!timingSafeEqualString(password, expected)) {
-    const locked = recordLoginFailure(clientIp(req));
-    if (locked) {
-      return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+    if (!process.env.VERCEL) {
+      const locked = recordLoginFailure(clientIp(req));
+      if (locked) {
+        return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+      }
     }
     return res.status(401).json({ error: 'Invalid password' });
   }
 
-  clearLoginFailures(clientIp(req));
-  const maxAge = 30 * 24 * 60 * 60 * 1000;
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader(
-    'Set-Cookie',
-    `${COOKIE_NAME}=${authToken()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(maxAge / 1000)}${secure}`
-  );
+  if (!process.env.VERCEL) clearLoginFailures(clientIp(req));
+  const secure = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  setAuthCookieHeader(res, { secure });
   return res.json({ ok: true });
 }
 
 export function handleLogout(_req, res) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader(
-    'Set-Cookie',
-    `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`
-  );
+  const secure = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  clearAuthCookieHeader(res, { secure });
   return res.json({ ok: true });
 }

@@ -1,6 +1,13 @@
 # config/
 
-Loads and saves alert thresholds to a JSON file (default: `data/config.json`).
+Alert thresholds (low battery %, default moisture %, per-device overrides).
+
+## Storage
+
+| Environment | Where |
+|-------------|--------|
+| Local `npm start` (no `DATABASE_URL`) | `data/config.json` |
+| Vercel + Neon | Postgres table `app_config` |
 
 ## Schema
 
@@ -22,6 +29,7 @@ Renaming plants in Smart Life does not change device IDs, so history and thresho
 
 ## Module
 
-- **`store.mjs`** — `loadConfig()`, `saveConfig()`, `moistureThresholdForDevice()`, `getConfigPath()`
+- **`normalize.mjs`** — validation and `moistureThresholdForDevice()`
+- **`store.mjs`** — `loadConfig()`, `saveConfig()`, `saveConfigFromBody()` (async when using Postgres)
 
-Override file location with `CONFIG_PATH` in `.env`.
+Override file location with `CONFIG_PATH` in `.env` (local file mode only).

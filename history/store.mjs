@@ -1,9 +1,9 @@
 import fs from 'fs';
-import path from 'path';
 import { DatabaseSync } from 'node:sqlite';
 import { dataPath } from '../lib/paths.mjs';
+import { databaseUrl, getPool } from '../lib/db.mjs';
 
-const SCHEMA = `
+const SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS readings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   device_id TEXT NOT NULL,
@@ -15,22 +15,15 @@ CREATE INDEX IF NOT EXISTS idx_readings_lookup
   ON readings (device_id, code, recorded_at DESC);
 `;
 
-const PG_SCHEMA = `
-CREATE TABLE IF NOT EXISTS readings (
-  id BIGSERIAL PRIMARY KEY,
-  device_id TEXT NOT NULL,
-  code TEXT NOT NULL,
-  value TEXT NOT NULL,
-  recorded_at BIGINT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_readings_lookup
-  ON readings (device_id, code, recorded_at DESC);
-`;
-
 /** @returns {Promise<{ kind: 'sqlite'|'postgres', path?: string, insertReadings(rows), queryReadings(opts), close?() }>} */
 export async function createStore() {
-  const databaseUrl = process.env.DATABASE_URL?.trim();
-  if (databaseUrl) return createPostgresStore(databaseUrl);
+  if (databaseUrl()) {
+    const pool = await getPool();
+    return createPostgresStore(pool);
+  }
+  if (process.env.VERCEL) {
+    throw new Error('DATABASE_URL is required on Vercel (use your Neon connection string)');
+  }
   return createSqliteStore();
 }
 
@@ -39,7 +32,7 @@ async function createSqliteStore() {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
   const db = new DatabaseSync(dbPath);
-  db.exec(SCHEMA);
+  db.exec(SQLITE_SCHEMA);
 
   return {
     kind: 'sqlite',
@@ -75,7 +68,7 @@ async function createSqliteStore() {
         ORDER BY recorded_at ASC
         LIMIT ?
       `;
-      return stmtAll(db, sql, params);
+      return db.prepare(sql).all(...params);
     },
     close() {
       db.close();
@@ -83,18 +76,7 @@ async function createSqliteStore() {
   };
 }
 
-function stmtAll(db, sql, params) {
-  return db.prepare(sql).all(...params);
-}
-
-async function createPostgresStore(databaseUrl) {
-  const pg = await import('pg');
-  const pool = new pg.default.Pool({
-    connectionString: databaseUrl,
-    ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
-  });
-  await pool.query(PG_SCHEMA);
-
+function createPostgresStore(pool) {
   return {
     kind: 'postgres',
     async insertReadings(rows) {
