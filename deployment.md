@@ -57,7 +57,11 @@ npm run db:schema
 npm run local
 ```
 
-Use **`npm run local`** (not `npm run dev`) — a script named `dev` that runs `vercel dev` triggers a recursive-loop error. If it still fails, clear **Development Command** under Vercel **Settings → General**.
+Use **`npm run local`** (not `npm run dev`) — a script named `dev` that runs `vercel dev` triggers a recursive-loop error.
+
+If you see **“No entrypoint found”**, run `git pull` — the repo includes a stub `server.mjs` for `vercel dev` (ignored on deploy). Clear **Development Command** under Vercel **Settings → General** if it is set to `npm run dev`.
+
+If port 3000 is busy, stop other Node processes or run `npx vercel dev --yes --listen 3005`.
 
 Uses `vercel dev` with the same serverless functions as production. Pull env from Vercel optionally:
 

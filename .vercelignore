@@ -1,6 +1,10 @@
+# Local dev entrypoint only — not a production serverless function
+server.mjs
+scripts/dev-idle.mjs
+
 api/dispatch.mjs
 api/errors.mjs
-scripts/
+scripts/ensure-schema.mjs
 data/
 .env
 .env.*
