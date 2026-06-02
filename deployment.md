@@ -66,6 +66,8 @@ Same as local development — see [`.env.example`](.env.example):
 
 5. Deploy.
 
+6. **If the URL shows “Authentication Required” (Vercel login page):** that is Vercel **Deployment Protection**, not this app. In the project go to **Settings → Deployment Protection** and set **Production** (and **Preview**, if you use branch URLs) to **None** or “Only Vercel team” off for public access. Preview URLs like `…-git-main-….vercel.app` are often protected by default.
+
 After deploy, open your Vercel URL, sign in with `CONFIG_PASSWORD`, and open **Settings** to set moisture thresholds.
 
 ---
