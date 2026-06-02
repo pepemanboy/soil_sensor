@@ -16,7 +16,8 @@ Default datapoints: `humidity`, `temp_current`, `battery_percentage` (override w
 | File | Role |
 |------|------|
 | `store.mjs` | `createStore()`, `insertReadings()`, `queryReadings()` |
-| `poller.mjs` | `startHistoryPoller()` — used by `app.mjs` when `HISTORY_POLL` is not `false` |
+| `poller.mjs` | In-process poller for `npm start` (local only) |
+| `poll-once.mjs` | Single poll — used by `/api/cron/poll` on Vercel |
 
 ## Related
 

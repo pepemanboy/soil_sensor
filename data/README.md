@@ -1,12 +1,12 @@
 # data/
 
-Runtime files created by the app (not committed to git except this README).
+Local-only runtime files when **`DATABASE_URL` is not set** (SQLite + file config). Not used on Vercel.
 
-| File | Created by |
-|------|------------|
-| `history.db` | History poller — SQLite readings |
-| `config.json` | Config UI / `PUT /api/config` — alert thresholds |
+| File | Purpose |
+|------|---------|
+| `history.db` | SQLite readings |
+| `config.json` | Alert thresholds |
 
-All paths can be overridden via `.env` (`HISTORY_DB_PATH`, `CONFIG_PATH`).
+With `DATABASE_URL` (Neon), history and config live in Postgres instead.
 
-**Backup tip:** copy `config.json` and `history.db` if you migrate machines. Device IDs must match the same Tuya account.
+Override paths: `HISTORY_DB_PATH`, `CONFIG_PATH` in `.env`.
