@@ -134,14 +134,25 @@ function toChartTime(ts) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function formatAxisLabel(ts, hours) {
-  const ms = toChartTime(ts);
-  if (ms == null) return '';
-  const d = new Date(ms);
-  if (hours <= 48) {
-    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+/** Break line when readings are farther apart than ~3× a 5‑min poll interval. */
+const CHART_GAP_MS = 15 * 60 * 1000;
+
+function sortChartPoints(points) {
+  return [...points].sort((a, b) => a.x - b.x);
+}
+
+/** Insert null points so Chart.js does not draw across missing periods. */
+function seriesWithGapBreaks(points) {
+  if (points.length < 2) return points;
+  const sorted = sortChartPoints(points);
+  const out = [sorted[0]];
+  for (let i = 1; i < sorted.length; i += 1) {
+    if (sorted[i].x - out[out.length - 1].x > CHART_GAP_MS) {
+      out.push({ x: sorted[i].x, y: null });
+    }
+    out.push(sorted[i]);
   }
-  return d.toLocaleString(undefined, { month: 'short', day: 'numeric' });
+  return out;
 }
 
 function destroyChartOnCanvas(canvas) {
@@ -153,10 +164,12 @@ function destroyChartOnCanvas(canvas) {
   }
 }
 
-function buildChartDatasets(metric, deviceId, data, pointCount) {
+function buildChartDatasets(metric, deviceId, series) {
+  const pointCount = series.filter((p) => p.y != null).length;
   const datasets = [{
     label: metric.label,
-    data,
+    data: series,
+    spanGaps: false,
     borderColor: metric.color,
     backgroundColor: `${metric.color}22`,
     fill: true,
@@ -172,7 +185,8 @@ function buildChartDatasets(metric, deviceId, data, pointCount) {
     if (threshold != null) {
       datasets.unshift({
         label: `Threshold (${threshold}%)`,
-        data: Array(pointCount).fill(threshold),
+        data: series.map((p) => ({ x: p.x, y: p.y == null ? null : threshold })),
+        spanGaps: false,
         borderColor: 'rgba(139, 148, 158, 0.5)',
         borderWidth: 1,
         borderDash: [5, 5],
@@ -188,7 +202,22 @@ function buildChartDatasets(metric, deviceId, data, pointCount) {
   return datasets;
 }
 
-function chartOptions(metric, points, hours) {
+function chartTimeScale(hours) {
+  if (hours <= 48) {
+    return {
+      unit: 'hour',
+      displayFormats: { hour: 'MMM d, HH:mm', day: 'MMM d' },
+      tooltipFormat: 'PPp',
+    };
+  }
+  return {
+    unit: 'day',
+    displayFormats: { day: 'MMM d', week: 'MMM d' },
+    tooltipFormat: 'PPp',
+  };
+}
+
+function chartOptions(metric, hours) {
   const suffix = metric.code === 'temp_current' ? ' °C' : '%';
   const fixedPercentScale =
     metric.code === 'humidity' || metric.code === 'battery_percentage';
@@ -201,8 +230,8 @@ function chartOptions(metric, points, hours) {
       tooltip: {
         callbacks: {
           title(items) {
-            const ms = toChartTime(points[items[0].dataIndex].x);
-            return ms == null ? '' : new Date(ms).toLocaleString();
+            const x = items[0]?.parsed?.x;
+            return x == null ? '' : new Date(x).toLocaleString();
           },
           label(ctx) {
             const v = ctx.parsed.y;
@@ -216,8 +245,10 @@ function chartOptions(metric, points, hours) {
     },
     scales: {
       x: {
+        type: 'time',
+        time: chartTimeScale(hours),
         grid: { color: '#30363d' },
-        ticks: { color: '#8b949e', maxTicksLimit: 5, maxRotation: 0 },
+        ticks: { color: '#8b949e', maxTicksLimit: 6, maxRotation: 0 },
       },
       y: {
         grid: { color: '#30363d' },
@@ -255,14 +286,12 @@ function renderChart(canvas, readings, metric, hours) {
   canvas.hidden = false;
   if (emptyEl) emptyEl.hidden = true;
 
-  const labels = points.map((p) => formatAxisLabel(p.x, hours));
-  const data = points.map((p) => p.y);
-  const datasets = buildChartDatasets(metric, deviceId, data, data.length);
-  const options = chartOptions(metric, points, hours);
+  const series = seriesWithGapBreaks(points);
+  const datasets = buildChartDatasets(metric, deviceId, series);
+  const options = chartOptions(metric, hours);
 
   const existing = chartRegistry.get(chartKey);
   if (existing?.canvas === canvas) {
-    existing.data.labels = labels;
     existing.data.datasets = datasets;
     existing.options = options;
     existing.update();
@@ -272,7 +301,7 @@ function renderChart(canvas, readings, metric, hours) {
   destroyChartOnCanvas(canvas);
   chartRegistry.set(chartKey, new Chart(canvas, {
     type: 'line',
-    data: { labels, datasets },
+    data: { datasets },
     options,
   }));
 }
