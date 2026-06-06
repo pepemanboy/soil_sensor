@@ -43,7 +43,10 @@ export async function createStore() {
         LIMIT $${params.length}
       `;
       const r = await pool.query(sql, params);
-      return r.rows;
+      return r.rows.map((row) => ({
+        ...row,
+        recorded_at: Number(row.recorded_at),
+      }));
     },
   };
 }

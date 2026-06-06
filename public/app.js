@@ -129,8 +129,15 @@ async function fetchHistory(deviceId, code, hours) {
   return body.readings ?? [];
 }
 
+function toChartTime(ts) {
+  const n = Number(ts);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function formatAxisLabel(ts, hours) {
-  const d = new Date(ts);
+  const ms = toChartTime(ts);
+  if (ms == null) return '';
+  const d = new Date(ms);
   if (hours <= 48) {
     return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
@@ -194,7 +201,8 @@ function chartOptions(metric, points, hours) {
       tooltip: {
         callbacks: {
           title(items) {
-            return new Date(points[items[0].dataIndex].x).toLocaleString();
+            const ms = toChartTime(points[items[0].dataIndex].x);
+            return ms == null ? '' : new Date(ms).toLocaleString();
           },
           label(ctx) {
             const v = ctx.parsed.y;
@@ -224,8 +232,11 @@ function chartOptions(metric, points, hours) {
 function renderChart(canvas, readings, metric, hours) {
   const deviceId = canvas.dataset.deviceId || '';
   const points = readings
-    .map((r) => ({ x: r.recorded_at, y: parseMetricValue(metric.code, r.value) }))
-    .filter((p) => p.y != null);
+    .map((r) => ({
+      x: toChartTime(r.recorded_at),
+      y: parseMetricValue(metric.code, r.value),
+    }))
+    .filter((p) => p.y != null && p.x != null);
 
   const emptyEl = canvas.parentElement.querySelector('.chart-empty');
   const chartKey = `${deviceId}:${metric.code}`;
