@@ -15,7 +15,7 @@ const refreshBtn = document.getElementById('refresh');
 const sortByEl = document.getElementById('sort-by');
 const chartHoursEl = document.getElementById('chart-hours');
 const chartMetricEl = document.getElementById('chart-metric');
-const showPlotsCb = document.getElementById('show-plots');
+const showPlotsBtn = document.getElementById('show-plots');
 
 const CHART_METRICS = [
   { code: 'humidity', label: 'Moisture %', color: '#58a6ff' },
@@ -89,11 +89,13 @@ function chartHours() {
 }
 
 function plotsEnabled() {
-  return showPlotsCb.checked;
+  return showPlotsBtn.getAttribute('aria-pressed') === 'true';
 }
 
 function syncPlotsUi() {
-  document.body.classList.toggle('show-plots', plotsEnabled());
+  const on = plotsEnabled();
+  document.body.classList.toggle('show-plots', on);
+  showPlotsBtn.classList.toggle('is-active', on);
 }
 
 function destroyCharts() {

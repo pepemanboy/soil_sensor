@@ -56,6 +56,18 @@
       background: #30363d;
       color: #e6edf3;
     }
+    .header-icon-btn.is-active,
+    .header-icon-btn[aria-pressed="true"] {
+      background: #ffffff;
+      color: #0f1419;
+      border-color: #ffffff;
+    }
+    .header-icon-btn.is-active:hover,
+    .header-icon-btn[aria-pressed="true"]:hover {
+      background: #e6edf3;
+      color: #0f1419;
+      border-color: #e6edf3;
+    }
     .header-icon-btn svg {
       width: 1.25rem;
       height: 1.25rem;
@@ -94,11 +106,6 @@
       padding: 0.15rem 0;
       white-space: nowrap;
       flex-wrap: nowrap;
-    }
-    .toolbar input[type="checkbox"] {
-      width: 1.1rem;
-      height: 1.1rem;
-      accent-color: #238636;
     }
     .toolbar select {
       background: #161b22;
@@ -356,6 +363,12 @@
           <path d="M3 21v-5h5" />
         </svg>
       </button>
+      <button type="button" id="show-plots" class="header-icon-btn" aria-label="Show plots" aria-pressed="false" title="Show plots">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="4 18 8 12 12 14 16 8 20 10" />
+          <line x1="4" y1="20" x2="20" y2="20" />
+        </svg>
+      </button>
       <a href="./config.html" class="header-icon-btn" aria-label="Settings">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
@@ -382,9 +395,6 @@
         <option value="battery_asc">Battery (low first)</option>
         <option value="offline_first">Offline first</option>
       </select>
-    </label>
-    <label>
-      <input type="checkbox" id="show-plots" /> Show plots
     </label>
     <label class="plot-controls">
       Chart
