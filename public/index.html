@@ -92,6 +92,8 @@
       gap: 0.4rem;
       min-height: 2.5rem;
       padding: 0.15rem 0;
+      white-space: nowrap;
+      flex-wrap: nowrap;
     }
     .toolbar input[type="checkbox"] {
       width: 1.1rem;
@@ -106,6 +108,8 @@
       padding: 0.4rem 0.5rem;
       font-size: 0.875rem;
       max-width: 100%;
+      min-width: 0;
+      flex: 1 1 auto;
     }
     .toolbar label.plot-controls { display: none; }
     body.show-plots .toolbar label.plot-controls {
@@ -331,6 +335,9 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 0.5rem;
+      }
+      .toolbar > label:first-of-type {
+        grid-column: 1 / -1;
       }
       .toolbar > button { grid-column: 1 / -1; }
       body.show-plots .toolbar label.plot-controls { grid-column: 1 / -1; }
