@@ -134,25 +134,8 @@ function toChartTime(ts) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Break line when readings are farther apart than ~3× a 5‑min poll interval. */
-const CHART_GAP_MS = 15 * 60 * 1000;
-
 function sortChartPoints(points) {
   return [...points].sort((a, b) => a.x - b.x);
-}
-
-/** Insert null points so Chart.js does not draw across missing periods. */
-function seriesWithGapBreaks(points) {
-  if (points.length < 2) return points;
-  const sorted = sortChartPoints(points);
-  const out = [sorted[0]];
-  for (let i = 1; i < sorted.length; i += 1) {
-    if (sorted[i].x - out[out.length - 1].x > CHART_GAP_MS) {
-      out.push({ x: sorted[i].x, y: null });
-    }
-    out.push(sorted[i]);
-  }
-  return out;
 }
 
 function destroyChartOnCanvas(canvas) {
@@ -169,7 +152,6 @@ function buildChartDatasets(metric, deviceId, series) {
   const datasets = [{
     label: metric.label,
     data: series,
-    spanGaps: false,
     borderColor: metric.color,
     backgroundColor: `${metric.color}22`,
     fill: true,
@@ -185,8 +167,7 @@ function buildChartDatasets(metric, deviceId, series) {
     if (threshold != null) {
       datasets.unshift({
         label: `Threshold (${threshold}%)`,
-        data: series.map((p) => ({ x: p.x, y: p.y == null ? null : threshold })),
-        spanGaps: false,
+        data: series.map((p) => ({ x: p.x, y: threshold })),
         borderColor: 'rgba(139, 148, 158, 0.5)',
         borderWidth: 1,
         borderDash: [5, 5],
@@ -286,7 +267,7 @@ function renderChart(canvas, readings, metric, hours) {
   canvas.hidden = false;
   if (emptyEl) emptyEl.hidden = true;
 
-  const series = seriesWithGapBreaks(points);
+  const series = sortChartPoints(points);
   const datasets = buildChartDatasets(metric, deviceId, series);
   const options = chartOptions(metric, hours);
 
