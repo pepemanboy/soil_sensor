@@ -1,10 +1,9 @@
-# Local dev entrypoint only — not a production serverless function
+# Local dev only — not deployed as a serverless function
 server.mjs
-scripts/dev-idle.mjs
 
-api/dispatch.mjs
-api/errors.mjs
+# Schema script — run locally with npm run db:schema
 scripts/ensure-schema.mjs
+
 data/
 .env
 .env.*

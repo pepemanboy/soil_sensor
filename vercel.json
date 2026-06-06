@@ -1,9 +1,8 @@
 {
+  "framework": null,
   "installCommand": "npm install",
-  "buildCommand": null,
-  "rewrites": [
-    { "source": "/api/((?!cron/).*)", "destination": "/api" }
-  ],
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "public",
   "functions": {
     "api/**/*.js": {
       "maxDuration": 60

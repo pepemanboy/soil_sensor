@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "local": "vercel dev --yes",
+    "vercel-build": "node -e \"process.exit(0)\"",
     "db:schema": "node scripts/ensure-schema.mjs"
   },
   "keywords": [],

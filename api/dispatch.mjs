@@ -23,9 +23,20 @@ async function getDeps() {
 }
 
 function apiPathname(req) {
-  const raw = req.url ?? '/';
-  const path = raw.startsWith('http') ? new URL(raw).pathname : raw.split('?')[0];
-  return path.replace(/^\/api/, '') || '/';
+  const original =
+    req.headers['x-vercel-original-path'] ||
+    req.headers['x-invoke-path'] ||
+    req.headers['x-matched-path'];
+  const raw = original || req.url || '/';
+  const path = raw.startsWith('http') ? new URL(raw).pathname : String(raw).split('?')[0];
+  const sub = path.replace(/^\/api/, '') || '/';
+  if (sub !== '/' && sub !== '') return sub.startsWith('/') ? sub : `/${sub}`;
+  const q = req.query?.path;
+  if (q) {
+    const segment = Array.isArray(q) ? q.join('/') : String(q);
+    return segment ? `/${segment.replace(/^\/+/, '')}` : '/';
+  }
+  return '/';
 }
 
 function isPublicApi(pathname, method) {
