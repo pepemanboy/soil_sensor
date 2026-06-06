@@ -140,5 +140,10 @@ async function save() {
   }
 }
 
+document.getElementById('logout')?.addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+  window.location.href = '/login.html';
+});
+
 saveBtn.addEventListener('click', save);
 load();

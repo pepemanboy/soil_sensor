@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Soil sensors — Config</title>
+  <title>My plants — Config</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     :root {
@@ -29,7 +29,13 @@
       margin: 0;
       min-width: 0;
     }
-    .sensors-link {
+    .header-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-shrink: 0;
+    }
+    .header-icon-btn {
       flex-shrink: 0;
       display: inline-flex;
       align-items: center;
@@ -41,14 +47,22 @@
       border-radius: 6px;
       color: #8b949e;
       text-decoration: none;
+      padding: 0;
+      min-height: 0;
+      cursor: pointer;
     }
-    .sensors-link:hover {
+    .header-icon-btn:hover {
       background: #30363d;
       color: #e6edf3;
     }
-    .sensors-link svg {
+    .header-icon-btn svg {
       width: 1.25rem;
       height: 1.25rem;
+    }
+    .header-icon-btn.is-active {
+      background: #ffffff;
+      color: #0f1419;
+      border-color: #ffffff;
     }
     .save-footer {
       margin-bottom: 1rem;
@@ -169,37 +183,49 @@
 </head>
 <body>
   <header class="page-header">
-    <h1>Alert config</h1>
-    <a href="./" class="sensors-link" aria-label="Sensors">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M7 20h10"/>
-        <path d="M12 20V8"/>
-        <path d="M12 8c-2.5-3.5-7-3.5-7 1.5S9 14 12 16c3-2 7-4.5 7-6.5S14.5 4.5 12 8z"/>
-      </svg>
-    </a>
+    <h1>Config</h1>
+    <div class="header-actions">
+      <a href="./" class="header-icon-btn" aria-label="My plants" title="My plants">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 20h10"/>
+          <path d="M12 20V8"/>
+          <path d="M12 8c-2.5-3.5-7-3.5-7 1.5S9 14 12 16c3-2 7-4.5 7-6.5S14.5 4.5 12 8z"/>
+        </svg>
+      </a>
+      <a href="./config.html" class="header-icon-btn is-active" aria-label="Config" aria-current="page" title="Config">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+        </svg>
+      </a>
+      <button type="button" id="logout" class="header-icon-btn" aria-label="Sign out" title="Sign out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+        </svg>
+      </button>
+    </div>
   </header>
   <div id="error" class="err" hidden></div>
 
   <section>
-    <h2>Global alerts</h2>
+    <h2>Global</h2>
     <div class="field">
-      <label for="low-battery">Low battery alert at or below</label>
+      <label for="low-battery">Low battery at or below</label>
       <input type="number" id="low-battery" min="0" max="100" step="1" /> %
     </div>
     <div class="field">
-      <label for="default-moisture">Default low moisture alert below</label>
+      <label for="default-moisture">Default low moisture below</label>
       <input type="number" id="default-moisture" min="0" max="100" step="1" required /> %
     </div>
     <p class="hint">Per-plant values override the default when set. Leave a plant blank to use the default.</p>
   </section>
 
   <section>
-    <h2>Per-plant low moisture</h2>
+    <h2>Per-plant moisture</h2>
     <table>
       <thead>
         <tr>
           <th>Plant</th>
-          <th>Alert below %</th>
+          <th>Moisture below %</th>
         </tr>
       </thead>
       <tbody id="plants"></tbody>
