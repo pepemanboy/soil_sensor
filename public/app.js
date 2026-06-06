@@ -553,9 +553,11 @@ sortByEl.addEventListener('change', async () => {
   await renderSensorList(lastSnapshot.devices, lastSnapshot.statusById, lastSnapshot.t);
 });
 
-showPlotsCb.addEventListener('change', () => {
+showPlotsBtn.addEventListener('click', () => {
+  const on = !plotsEnabled();
+  showPlotsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   syncPlotsUi();
-  if (plotsEnabled()) {
+  if (on) {
     loadAllCharts();
   } else {
     destroyCharts();

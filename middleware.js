@@ -1,6 +1,6 @@
 /** Vercel Edge: gate HTML pages (API enforces real cookie validation). */
 export const config = {
-  matcher: ['/((?!api/|login\\.html|login\\.js|_next/|favicon\\.ico).*)'],
+  matcher: ['/((?!api/|login\\.html|login\\.js|_next/|favicon\\.ico|favicon\\.svg).*)'],
 };
 
 function hasAuthCookie(cookieHeader) {
